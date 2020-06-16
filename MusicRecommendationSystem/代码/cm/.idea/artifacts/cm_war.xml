@@ -1,0 +1,14 @@
+<component name="ArtifactManager">
+  <artifact type="war" name="cm:war">
+    <output-path>$PROJECT_DIR$/target</output-path>
+    <properties id="maven-jee-properties">
+      <options>
+        <module>cm</module>
+        <packaging>war</packaging>
+      </options>
+    </properties>
+    <root id="archive" name="cm.war">
+      <element id="artifact" artifact-name="cm:war exploded" />
+    </root>
+  </artifact>
+</component>

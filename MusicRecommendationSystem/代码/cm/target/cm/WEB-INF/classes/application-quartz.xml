@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="
+		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-2.0.xsd"
+	default-lazy-init="false">
+	<!-- spark 任务提交 -->
+	<bean id="sparkSubmitJobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+		<property name="durability" value="true"/>
+		<property name="jobClass"
+			value="com.horizon.common.quartz.ClusterDetailQuartzJobBean"/>
+		<property name="jobDataAsMap">
+			<map>
+				<entry key="targetObject" value="livySubmitMgrImpl"/>
+				<entry key="targetMethod" value="invoke" />
+			</map>
+		</property>
+	</bean>
+	<bean id="sparkSubmitTriggerBean" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="sparkSubmitJobDetail"/>
+		<property name="cronExpression" value="0/20 * * * * ?"/><!-- 每小时同步一次 -->
+	</bean>
+
+	<bean id="syncJobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+		<property name="durability" value="true"/>
+		<property name="jobClass"
+				  value="com.horizon.common.quartz.ClusterDetailQuartzJobBean"/>
+		<property name="jobDataAsMap">
+			<map>
+				<entry key="targetObject" value="syncMgrImpl"/>
+				<entry key="targetMethod" value="invoke" />
+			</map>
+		</property>
+	</bean>
+	<bean id="syncTriggerBean" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+		<property name="jobDetail" ref="syncJobDetail"/>
+		<property name="cronExpression" value="0/20 * * * * ?"/><!-- 每小时同步一次 -->
+	</bean>
+	
+	<bean id="mapScheduler" lazy-init="false" autowire="no"   
+             class="org.springframework.scheduling.quartz.SchedulerFactoryBean" destroy-method="destroy">  
+         <!--可选，QuartzScheduler 启动时更新己存在的Job，这样就不用每次修改targetObject后删除qrtz_job_details表对应记录了 -->    
+        <property name="overwriteExistingJobs" value="true" />    
+         <!--必须的，QuartzScheduler 延时启动，应用启动完后 QuartzScheduler 再启动 -->  
+        <property name="startupDelay" value="1" />  
+        <!-- 设置自动启动 -->  
+        <property name="autoStartup" value="true" />  
+        <property name="dataSource" ref="dataSource" />
+        <property name="triggers">  
+                <list>
+					<!--同步关系库增量数据
+					<ref bean="syncTriggerBean" />-->
+					<!--执行建模 -->
+					<ref bean="sparkSubmitTriggerBean" />
+                </list>  
+        </property>  
+        <property name="applicationContextSchedulerContextKey" value="applicationContext" />  
+        <property name="configLocation" value="classpath:quartz.properties" />  
+    </bean>  
+															
+</beans>

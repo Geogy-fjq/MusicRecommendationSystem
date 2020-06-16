@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="       
+      http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd       
+      http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd       
+      http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-3.0.xsd       
+      http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd       
+      http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd"
+	default-autowire="byName">
+	<context:annotation-config />
+	<!-- 导入属性配置文件 -->							
+	<bean id="propertyPlaceholderConfigurer" class="com.horizon.common.base.Config">
+		<property name="locations">
+			<list>
+				<value>classpath:/db.properties</value>
+				<value>classpath:/message.properties</value>
+				<value>classpath:/redis.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!-- 数据库连接池配置 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource"
+		destroy-method="close">
+		<property name="driverClass">
+			<value>${jdbc.driverClass}</value>
+		</property>
+		<property name="jdbcUrl">
+			<value>${jdbc.url}</value>
+		</property>
+		<property name="user">
+			<value>${jdbc.user}</value>
+		</property>
+		<property name="password">
+			<value>${jdbc.password}</value>
+		</property>
+		<property name="initialPoolSize">
+			<value>${jdbc.initialPoolSize}</value>
+		</property>
+		<property name="minPoolSize">
+			<value>${jdbc.minPoolSize}</value>
+		</property>
+		<property name="maxPoolSize">
+			<value>${jdbc.maxPoolSize}</value>
+		</property>
+	</bean>
+    <bean id="jedisPoolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <property name="maxTotal">
+        <value>${redis.pool.maxActive}</value>
+        </property>
+        <property name="maxIdle">
+         <value>${redis.pool.maxIdle}</value>
+        </property>
+        <property name="testOnBorrow" value="true"/>
+        <property name="testOnReturn" value="true"/>
+    </bean>
+   
+     <bean id="shardedJedisPool" class="redis.clients.jedis.ShardedJedisPool"  scope="singleton">
+        <constructor-arg index="0" ref="jedisPoolConfig" />
+        <constructor-arg index="1">
+            <list>
+                <bean class="redis.clients.jedis.JedisShardInfo">
+                    <constructor-arg name="uri" value="${redis.uri}" />
+                </bean>
+            </list>
+        </constructor-arg>
+    </bean>
+    <bean id="redisDataSource" class="com.horizon.common.dao.redis.JedisDataSourceImpl">
+    </bean>
+     <!-- <bean id="redisManager" class="com.horizon.common.jedis.HA.RedisManager"  scope="singleton">
+     	<property name="ips">
+        	<value>${redis.uri}</value>
+        </property>
+    </bean> -->
+
+	<!-- 自动扫描组件，这里要把web下面的 controller去除，他们是在spring3-servlet.xml中配置的，如果不去除会影响事务管理的。 -->
+	<context:component-scan base-package="com.horizon">
+	<context:exclude-filter type="regex"
+							expression="com.horizon.*.*.web.*" />
+</context:component-scan>
+
+	<bean id="transactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<bean id="dao" class="com.horizon.common.base.BaseDao">
+		<property name="jdbcTemplate" ref="jdbcTemplate" />
+	</bean>
+	<!--<bean id="syncMgrImpl" class="com.horizon.common.quartz.task.impl.TaskSubmitMgrImpl">
+		<property name="logDir" value="/root/apache-tomcat-7.0.73/logs" />
+		<property name="exeClass" value="&#45;&#45;class com.horizon.pt.AlsEtl" />
+		<property name="exeJar" value="/root/apache-tomcat-7.0.73/practicaltraining_2.10-1.0.jar" />
+		<property name="params" value="hdfs://172.17.11.11:9000/out/usrArtist/" />
+	</bean>
+	
+	<bean id="taskSubmitMgrImpl" class="com.horizon.common.quartz.task.impl.TaskSubmitMgrImpl">
+	<property name="logDir" value="/root/apache-tomcat-7.0.73/logs" />
+	<property name="exeClass" value="&#45;&#45;class com.horizon.pt.AlsModel" />
+	<property name="exeJar" value="/root/apache-tomcat-7.0.73/practicaltraining_2.10-1.0.jar" />
+	<property name="params" value="hdfs://192.168.88.104:8020/out/usrArtist/ hdfs://192.168.88.104:8020/out/usrArtist/model/" />
+</bean>-->
+	<bean id="livySubmitMgrImpl" class="com.horizon.common.quartz.task.impl.TaskSubmit4LivyMgrImpl">
+	</bean>
+</beans>
